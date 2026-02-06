@@ -1,1 +1,212 @@
-nana_money_snapshot.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nana Money Snapshot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    max-width: 1100px;
+    margin: auto;
+}
+
+.panel {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    text-align: center;
+}
+
+.title {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.value {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.change {
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.green { color: green; }
+.red { color: red; }
+
+.small {
+    font-size: 12px;
+    color: #777;
+    margin-top: 6px;
+}
+
+.fd-table {
+    width: 100%;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.fd-table td {
+    padding: 2px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Nana Money Snapshot</h1>
+
+<div class="dashboard">
+
+    <div class="panel">
+        <div class="title">Nifty 50</div>
+        <div id="nifty" class="value">Loading…</div>
+        <div id="niftyChange" class="change"></div>
+    </div>
+
+    <div class="panel">
+        <div class="title">S&P 500</div>
+        <div id="sp500" class="value">Loading…</div>
+        <div id="sp500Change" class="change"></div>
+    </div>
+
+    <div class="panel">
+        <div class="title">USD / INR</div>
+        <div id="usdinr" class="value">Loading…</div>
+        <div id="usdinrChange" class="change"></div>
+    </div>
+
+    <div class="panel">
+        <div class="title">Brent Oil</div>
+        <div id="oil" class="value">Loading…</div>
+        <div id="oilChange" class="change"></div>
+    </div>
+
+    <div class="panel">
+        <div class="title">Gold</div>
+        <div id="gold" class="value">Loading…</div>
+        <div id="goldChange" class="change"></div>
+    </div>
+
+    <div class="panel">
+        <div class="title">Bitcoin</div>
+        <div id="btc" class="value">Loading…</div>
+        <div id="btcChange" class="change"></div>
+    </div>
+
+    <div class="panel">
+        <div class="title">Mutual Fund (Sample)</div>
+        <div id="mf" class="value">Loading…</div>
+        <div class="small">Last NAV</div>
+    </div>
+
+    <div class="panel">
+        <div class="title">NRE FD Rates (Jan 2026)</div>
+
+        <table class="fd-table">
+            <tr><td>SBI</td><td>INR 6.50%</td><td>USD 5.25%</td></tr>
+            <tr><td>Canara</td><td>INR 6.40%</td><td>USD 5.15%</td></tr>
+            <tr><td>ICICI</td><td>INR 6.60%</td><td>USD 5.30%</td></tr>
+            <tr><td>BoB</td><td>INR 6.45%</td><td>USD 5.20%</td></tr>
+        </table>
+
+        <div class="small">
+            Next review expected: mid-April 2026
+        </div>
+    </div>
+
+</div>
+
+<script>
+function setPanel(valueId, changeId, value, change) {
+    document.getElementById(valueId).textContent = value;
+
+    if (changeId && change !== null) {
+        let el = document.getElementById(changeId);
+        el.textContent = change;
+        el.className = "change " + (change.includes("-") ? "red" : "green");
+    }
+}
+
+// Example free data sources
+
+async function loadData() {
+    try {
+        // Bitcoin (CoinGecko)
+        let btc = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true");
+        let btcData = await btc.json();
+        let price = btcData.bitcoin.usd.toFixed(0);
+        let change = btcData.bitcoin.usd_24h_change.toFixed(2) + "%";
+        setPanel("btc", "btcChange", "$" + price, change);
+    } catch {
+        document.getElementById("btc").textContent = "N/A";
+    }
+
+    try {
+        // Gold via CoinGecko (more reliable)
+try {
+    let gold = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether-gold&vs_currencies=usd&include_24hr_change=true");
+    let goldData = await gold.json();
+    let price = goldData["tether-gold"].usd.toFixed(2);
+    let change = goldData["tether-gold"].usd_24h_change.toFixed(2) + "%";
+    setPanel("gold", "goldChange", "$" + price, change);
+} catch {
+    document.getElementById("gold").textContent = "N/A";
+}
+
+    } catch {
+        document.getElementById("gold").textContent = "N/A";
+    }
+
+    // USD/INR via exchangerate.host
+try {
+    let fx = await fetch("https://api.exchangerate.host/latest?base=USD&symbols=INR");
+    let fxData = await fx.json();
+    let rate = fxData.rates.INR.toFixed(2);
+    setPanel("usdinr", "usdinrChange", rate, "");
+} catch {
+    document.getElementById("usdinr").textContent = "N/A";
+}
+
+// Oil via CoinGecko (crude proxy)
+try {
+    let oil = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=oil-brent&vs_currencies=usd&include_24hr_change=true");
+    let oilData = await oil.json();
+    let price = oilData["oil-brent"].usd.toFixed(2);
+    let change = oilData["oil-brent"].usd_24h_change.toFixed(2) + "%";
+    setPanel("oil", "oilChange", "$" + price, change);
+} catch {
+    document.getElementById("oil").textContent = "N/A";
+}
+
+// Keep static for now
+setPanel("nifty", "niftyChange", "24,150", "+0.42%");
+setPanel("sp500", "sp500Change", "5,180", "-0.18%");
+setPanel("mf", null, "₹128.40");
+
+}
+
+loadData();
+</script>
+
+</body>
+</html>
